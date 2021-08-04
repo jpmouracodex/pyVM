@@ -1,3 +1,3 @@
 # pyVM
 
-A virtual machine made from scratch in Python.
+A simple virtual machine made from scratch in Python.
