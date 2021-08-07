@@ -1,5 +1,6 @@
 from instructionSet import *
 from memory import Memory
+import pygame
 
 class CPU:
     def __init__(self, memorySize):
@@ -13,10 +14,14 @@ class CPU:
 
         self.registers = Memory(len(self.registerNames) * 2)
 
-        self.setRegister("sp", len(self.memory.array)-1-1)
-        self.setRegister("fp", len(self.memory.array)-1-1)
+        self.setRegister("sp", 0xffff - 1)
+        self.setRegister("fp", 0xffff - 1)
 
         self.stackFrameSize = 0
+
+        pygame.init()
+        self.screen = pygame.display.set_mode((256, 256))
+        pygame.display.set_caption('pyVM') 
 
     def getRegister(self, name):
         return self.registers.get16(self.registerNames[name])
@@ -118,11 +123,11 @@ class CPU:
             self.registers.set16(registerAddress, value)
         
         elif instruction == ADD_REG_REG:
-            r1 = self.fetch()
-            r2 = self.fetch()
+            r1 = self.getRegisterIndex()
+            r2 = self.getRegisterIndex()
 
-            registerValue1 = self.registers.get16(r1*2)
-            registerValue2 = self.registers.get16(r2*2)
+            registerValue1 = self.registers.get16(r1)
+            registerValue2 = self.registers.get16(r2)
 
             self.setRegister("acc", registerValue1 + registerValue2)
         
@@ -160,11 +165,15 @@ class CPU:
         elif instruction == RET:
             self.popState()
 
+        elif instruction == HLT:
+            return True
+
     def step(self):
         instruction = self.fetch()
         return self.execute(instruction)
     
     def debug(self):
+
         for name in self.registerNames:
             print("{}: 0x{:04X}".format(name, self.getRegister(name)))
            
@@ -181,4 +190,23 @@ class CPU:
             self.memory.set(address, byte)
             address += 1
 
+    def drawScreen(self):
+        self.screen.fill((0,0,0))
+        for address in range(0x3000, 0x30ff):
+            value = self.memory.get(address)
+            address -= 0x3000 + 1 
+            x = address % 16
+            y = address // 16
+            pygame.draw.rect(self.screen, 
+            (value, value, value),
+            pygame.Rect(x*16, y*16, x*16+16, y*16+16))
 
+        pygame.display.update()
+        
+
+    def run(self):
+        halt = False
+
+        while not halt:
+            halt = self.step()
+            self.drawScreen()
